@@ -23,7 +23,7 @@ import pandas as pd
 
 x = pickle.load(open("x.pkl",'rb'))
 
-x = x[:1024, 0]
+x = x[:1024]
 print(x.shape)
 print(x)
 
