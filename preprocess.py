@@ -1,521 +1,87 @@
-"""
-	Process the data downloaded from original source
-"""
-
 import h5py
 import os
 import pickle
 import numpy as np
 from tqdm import tqdm
-import matplotlib.pyplot as plt
-import seaborn as sns
-sns.set()
 
 
-def process_data():
-	"""
-		Extracts the SBP and DBP values of 10 seconds long episodes
-		while taking new episodes 5 seconds apart
-		and stores them as .csv files
+fs = 125 # sampling frequency
+t = 10 # length of ppg episodes
+dt = 5 # step size of taking the next episode
 
-		This function is likely to take 6-7 days to run on a Intel Core i7-7700 CPU
-	"""
+samples_in_episode = round(fs * t)
+d_samples = round(fs * dt)
 
-	fs = 125								# sampling frequency
-	t = 10									# length of ppg episodes
-	dt = 5									# step size of taking the next episode
-	
-	samples_in_episode = round(fs * t)		# number of samples in an episode
-	d_samples = round(fs * dt)				# number of samples in a step
+os.makedirs('processed_data')
 
-	try:									# create the processed_data directory
-		os.makedirs('processed_data')
-	except Exception as e:
-		print(e)
+f = h5py.File(os.path.join('raw_data','Part_1.mat'), 'r')
 
-	for k in range(1,5):					# process for the 4 different parts of the data
+ky = 'Part_1'
 
-		print("Processing file part {} out of 4".format(k))
+for i in tqdm(range(len(f[ky])),desc='Reading Records'):
 
-		f = h5py.File(os.path.join('raw_data','Part_{}.mat'.format(k)), 'r')		# loads the data
+    signal = []
+    bp = []
 
-		ky = 'Part_' + str(k)														# key 
+    output_str = '10s,SBP,DBP\n'
 
-		for i in tqdm(range(len(f[ky])),desc='Reading Records'):					# reading the records
-
-			signal = []												# ppg signal
-			bp = []													# abp signal
-
-			output_str = '10s,SBP,DBP\n'							# starting text for a new csv file
-
-			for j in tqdm(range(len(f[f[ky][i][0]])),desc='Reading Samples from Record {}/3000'.format(i+1)):	# reading samples from records
-				
-				signal.append(f[f[ky][i][0]][j][0])					# ppg signal
-				bp.append(f[f[ky][i][0]][j][1])						# abp signal
-
-			for j in tqdm(range(0,len(f[f[ky][i][0]])-samples_in_episode, d_samples),desc='Processing Episodes from Record {}/3000'.format(i+1)):	# computing the sbp and dbp values
-				
-				sbp = max(bp[j:j+samples_in_episode])		# sbp value
-				dbp = min(bp[j:j+samples_in_episode])    	# dbp value
-
-				output_str += '{},{},{}\n'.format(j,sbp,dbp)	# append to the csv file
-
-
-			fp = open(os.path.join('processed_data','Part_{}_{}.csv'.format(k,i)),'w')		# create the csv file
-			fp.write(output_str)															# write the csv file
-			fp.close()																		# close the csv file
-
-
-def observe_processed_data():
-	"""
-		Observe the sbp and dbps of the 10s long episodes
-	"""
-
-	files = next(os.walk('processed_data'))[2]
-
-	sbps = []
-	dbps = []
-
-	for fl in tqdm(files,desc='Browsing through Files'):
-
-		lines = open(os.path.join('processed_data',fl),'r').read().split('\n')[1:-1]
-
-		for line in tqdm(lines,desc='Browsing through Episodes from File'):
-
-			values = line.split(',')
-			
-			sbp = int(float(values[1]))
-			dbp = int(float(values[2]))
-
-			sbps.append(sbp)
-			dbps.append(dbp)
-
-
-	plt.subplot(2,1,1)
-	plt.hist(sbps,bins=180)
-	plt.title('SBP')
-
-	plt.subplot(2,1,2)
-	plt.hist(dbps,bins=180)
-	plt.title('DBP')
-
-	plt.show()
-
-
-def downsample_data(minThresh=2500, ratio=0.25):
-	"""
-	Downsamples the data based on the scheme proposed in the manuscript
-	
-	Keyword Arguments:
-		minThresh {int} -- maximum number of episoeds (default: {2500})
-		ratio {float} -- ratio of total signals of certain bin to take (default: {0.25})
-	"""
-
-	
-	files = next(os.walk('processed_data'))[2]		# load all csv files
-
-	sbps_dict = {}									# dictionary to store sbp and dbp values
-	dbps_dict = {}
-
-	sbps_cnt = {}									# dictionary containing count of specific sbp and dbp values
-	dbps_cnt = {}
-
-	dbps_taken = {}									# dictionary containing count of specific sbp and dbp taken
-	sbps_taken = {}
-
-	sbps = []										# list of sbps and dbps
-	dbps = []
-
-	candidates = []									# list of candidate episodes
-
-	lut = {}										# look up table
-
-	for fl in tqdm(files, desc='Browsing Files'):		# iterating over the csv files
-
-		lines = open(os.path.join('processed_data', fl), 'r').read().split('\n')[1:-1]	# fetching the episodes
-
-		for line in tqdm(lines, desc='Reading Episodes'):		# iterating over the episodes	
-
-			values = line.split(',')
-
-			file_no = int(fl.split('_')[1])							# id of the file
-			record_no = int(fl.split('.')[0].split('_')[2])			# id of the record
-			episode_st = int(values[0])								# start of the episode
-			sbp = int(float(values[1]))								# sbp of that episode
-			dbp = int(float(values[2]))								# dbp of that episode
-
-			if(sbp not in sbps_dict):			# new sbp found
-
-				sbps_dict[sbp] = []				# initialize
-				sbps_cnt[sbp] = 0
-
-			sbps_dict[sbp].append((file_no, record_no, episode_st))		# add the file, record and episode info
-			sbps_cnt[sbp] += 1											# increment
-
-			if(dbp not in dbps_dict):			# new dbp found
-
-				dbps_dict[dbp] = []				# initialize
-				dbps_cnt[dbp] = 0
-
-			dbps_dict[dbp].append((file_no, record_no, episode_st, sbp))	# add the file, record and episode info
-			dbps_cnt[dbp] += 1												# increment
-
-	sbp_keys = list(sbps_dict)				# all the different sbp values
-	dbp_keys = list(dbps_dict)				# all the different dbp values
-
-	sbp_keys.sort()					# sorting the sbp values
-	dbp_keys.sort()					# sorting the dbp values
-
-	for dbp in tqdm(dbp_keys, desc='DBP Binning'):		# iterating through the dbp values
-
-		cnt = min(int(dbps_cnt[dbp]*ratio), minThresh)		# how many episodes of this dbp to take
-
-		for i in tqdm(range(cnt), desc='Picking Random Indices'):		
-
-			indix = np.random.randint(len(dbps_dict[dbp]))		# picking a random index
-
-			candidates.append([dbps_dict[dbp][indix][0], dbps_dict[dbp][indix][1], dbps_dict[dbp][indix][2]])	# add the file, record and episode info in the candidates list
-
-			if(dbp not in dbps_taken):					# this dbp has not been taken
-				dbps_taken[dbp] = 0						# initialize
-
-			dbps_taken[dbp] += 1						# increment
-
-			if(dbps_dict[dbp][indix][3] not in sbps_taken):		# checking if the sbp of that episode has been taken or not
-				sbps_taken[dbps_dict[dbp][indix][3]] = 0		# initialize
-
-			sbps_taken[dbps_dict[dbp][indix][3]] += 1			# increment
-
-			if(dbps_dict[dbp][indix][0] not in lut):			# this file is not in look up table
-
-				lut[dbps_dict[dbp][indix][0]] = {}				# add the file in look up table
-
-			if(dbps_dict[dbp][indix][1] not in lut[dbps_dict[dbp][indix][0]]):	# this record is not in look up table
-
-				lut[dbps_dict[dbp][indix][0]][dbps_dict[dbp][indix][1]] = {}	# add the record in look up table
-
-			if(dbps_dict[dbp][indix][2] not in lut[dbps_dict[dbp][indix][0]][dbps_dict[dbp][indix][1]]):	# this episode is not in look up table
-
-				lut[dbps_dict[dbp][indix][0]][dbps_dict[dbp][indix][1]][dbps_dict[dbp][indix][2]] = 1		# add this episode in look up table
-
-			dbps_dict[dbp].pop(indix)		# remove this episode, so that this episode is not randomly selected again
-
-	for sbp in tqdm(sbp_keys, desc='SBP Binning'):		# iterating on the sbps 
-
-		if sbp not in sbps_taken:			# this sbp has not yet been taken
-			sbps_taken[sbp] = 0				# initialize
-
-		cnt = min(int(sbps_cnt[sbp]*ratio), minThresh) - sbps_taken[sbp]		# how many episodes of this sbp to take, removed the count already included during dbp based binning
-
-		for i in tqdm(range(cnt), desc='Picking Random Indices'):		# iterate over how many episodes to take
-
-			while len(sbps_dict[sbp]) > 0:					# while there are some episodes with that sbp left
-
-				try:
-					indix = np.random.randint(len(sbps_dict[sbp]))		# picking a random episode
-				except:
-					pass
-
-				try:								# see if that episode is contained in the look up table
-					dumi = lut[sbps_dict[sbp][indix][0]][sbps_dict[sbp][indix][1]][sbps_dict[sbp][indix][2]]	
-				except:
-					sbps_dict[sbp].pop(indix)	
-					continue
-
-				candidates.append([sbps_dict[sbp][indix][0], sbps_dict[sbp][indix][1], sbps_dict[sbp][indix][2]])	# add new candidate
-
-				sbps_taken[sbp] += 1								# increment
-
-				sbps_dict[sbp].pop(indix)							# remove that episode
-
-				break												# repeat the process
-
-	sbps_dict = {}			# garbage collection
-	dbps_dict = {}
-
-	sbps_cnt = {}			# garbage collection
-	dbps_cnt = {}
-
-	sbps = []				# garbage collection
-	dbps = []
-
-	lut = {}				# garbage collection
-
-	print('Total {} episodes have been selected'.format(len(candidates)))	
-
-	pickle.dump(candidates, open('candidates.p', 'wb'))		# save the candidates
-
-	'''
-		plotting the downsampled episodes
-	'''
-
-	sbp_keys = list(sbps_taken)
-	dbp_keys = list(dbps_taken)
-
-	sbp_keys.sort()
-	dbp_keys.sort()
-
-	for sbp in sbp_keys:
-		sbps.append(sbps_taken[sbp])
-
-	for dbp in dbp_keys:
-		dbps.append(dbps_taken[dbp])
-
-	plt.figure()
-
-	plt.subplot(2, 1, 1)
-	plt.bar(sbp_keys, sbps)
-	plt.title('SBP')
-
-	plt.subplot(2, 1, 2)
-	plt.bar(dbp_keys, dbps)
-	plt.title('DBP')
-
-	plt.show()
-
-	
-
-def extract_episodes(candidates):
-	"""
-		Extracts the episodes from the raw data
-
-
-		This function is likely to take 3-4 days to run on a Intel Core i7-7700 CPU
-	"""
-
-	try:								# making the necessary directories
-		os.makedirs('ppgs')
-	except Exception as e:
-		print(e)
-
-	try:
-		os.makedirs('abps')
-	except Exception as e:
-		print(e)
-
-	for k in tqdm(range(1,5), desc='Reading from Files'):				# iterating throug the files
-
-		f = h5py.File('./raw_data/Part_{}.mat'.format(k), 'r')
-
-		fs = 125																# sampling frequency
-		t = 10																	# length of ppg episodes			
-		samples_in_episode = round(fs * t)										# number of samples in an episode
-		ky = 'Part_' + str(k)													# key
-
-		for indix in tqdm(range(len(candidates)), desc='Reading from File {}/4'.format(k)):		# iterating through the candidates
-
-			if(candidates[indix][0] != k):					# this candidate is from a different file
-				continue
-
-			record_no = int(candidates[indix][1])			# record no of the episode
-			episode_st = int(candidates[indix][2])			# start of that episode
-
-			ppg = []										# ppg signal
-			abp = []										# abp signal
-
-			for j in tqdm(range(episode_st, episode_st+samples_in_episode), desc='Reading Episode Id {}'.format(indix)):	
-
-				ppg.append(f[f[ky][record_no][0]][j][0])	# ppg signal
-				abp.append(f[f[ky][record_no][0]][j][1])	# abp signal
-
-			pickle.dump(np.array(ppg), open(os.path.join('ppgs', '{}.p'.format(indix)), 'wb'))		# saving the ppg signal
-			pickle.dump(np.array(abp), open(os.path.join('abps', '{}.p'.format(indix)), 'wb'))		# saving the abp signal
-
-
-
-def merge_episodes():
-	"""
-		Merges the extracted episodes
-		and saves them as a hdf5 file
-	"""
-
-	try:									# creates the necessary directory
-		os.makedirs('data')
-	except Exception as e:
-		print(e)
-
-	files = next(os.walk('abps'))[2]				# all the extracted episodes
-
-	np.random.shuffle(files)						# random shuffling, we perform the random shuffling now
-													# so that we can split the data straightforwardly next step
-
-	data = []										# initialize
-
-	for fl in tqdm(files):
-
-		abp = pickle.load(open(os.path.join('abps',fl),'rb'))			# abp signal
-		ppg = pickle.load(open(os.path.join('ppgs',fl),'rb'))			# ppg signal
-
-		data.append([abp, ppg])											# adding the signals
-
-
-	
-	f = h5py.File(os.path.join('data','data.hdf5'), 'w')				# saving the data as hdf5 file
-	dset = f.create_dataset('data', data=data)
-
-
-"""
-    Prepares the data splits for 10 fold cross validation
-"""
-
-import h5py
-import numpy as np
-import os
-from tqdm import tqdm
-import pickle
-
-
-def fold_data():
-    """
-        folds the data into splits and saves them
-        to perform 10 fold cross validation
-    """
-
-    length = 1024           # length of the signals
-
-                                # we take this starting points of validation data
-                                # as we have already shuffled the episodes while creating
-                                # the data.hdf5 file
-    validation_data_start = {
-        0: 90000,
-        1: 0,
-        2: 10000,
-        3: 20000,
-        4: 30000,
-        5: 40000,
-        6: 50000,
-        7: 60000,
-        8: 70000,
-        9: 80000,
-    }
-
-    for fold_id in tqdm(range(10), desc='Folding Data'):        # iterate for 10 folds
-
-        fl = h5py.File(os.path.join('data', 'data.hdf5'), 'r')      # load the episode data
-
-        X_train = []                        # intialize train data
-        Y_train = []
-
-        X_val = []                          # intialize validation data
-        Y_val = []
-
-        max_ppg = -10000                    # intialize metadata, min-max of abp,ppg signals
-        min_ppg = 10000
-        max_abp = -10000
-        min_abp = 10000
-
-        val_start = validation_data_start[fold_id]      # validation data start
-        val_end = val_start + 10000                     # validation data end
-
-        for i in tqdm(range(0, val_start), desc='Training Data Part 1'):    # training samples before validation samples
-
-            X_train.append(np.array(fl['data'][i][1][:length]).reshape(length, 1))  # ppg signal
-            Y_train.append(np.array(fl['data'][i][0][:length]).reshape(length, 1))  # abp signal
-
-            max_ppg = max(max(fl['data'][i][1]), max_ppg)       # update min-max of ppg 
-            min_ppg = min(min(fl['data'][i][1]), min_ppg)
-
-            max_abp = max(max(fl['data'][i][0]), max_abp)       # update min-max of abp
-            min_abp = min(min(fl['data'][i][0]), min_abp)
-
+    for j in tqdm(range(len(f[f[ky][i][0]])),desc='Reading Samples from Record {}/3000'.format(i+1)):
         
-        for i in tqdm(range(val_end, 100000), desc='Training Data Part 2'):    # training samples after validation samples
+        signal.append(f[f[ky][i][0]][j][0])
+        bp.append(f[f[ky][i][0]][j][1])
 
-            X_train.append(np.array(fl['data'][i][1][:length]).reshape(length, 1))  # ppg signal
-            Y_train.append(np.array(fl['data'][i][0][:length]).reshape(length, 1))  # abp signal
-
-            max_ppg = max(max(fl['data'][i][1]), max_ppg)       # update min-max of ppg 
-            min_ppg = min(min(fl['data'][i][1]), min_ppg)
-
-            max_abp = max(max(fl['data'][i][0]), max_abp)       # update min-max of abp
-            min_abp = min(min(fl['data'][i][0]), min_abp)
-
+    for j in tqdm(range(0,len(f[f[ky][i][0]])-samples_in_episode, d_samples),desc='Processing Episodes from Record {}/3000'.format(i+1)):
         
-        for i in tqdm(range(val_start, val_end), desc='Validation Data'):
+        sbp = max(bp[j:j+samples_in_episode])
+        dbp = min(bp[j:j+samples_in_episode])
 
-            X_val.append(np.array(fl['data'][i][1][:length]).reshape(length, 1))  # ppg signal
-            Y_val.append(np.array(fl['data'][i][0][:length]).reshape(length, 1))  # abp signal
-
-            max_ppg = max(max(fl['data'][i][1]), max_ppg)       # update min-max of ppg 
-            min_ppg = min(min(fl['data'][i][1]), min_ppg)
-
-            max_abp = max(max(fl['data'][i][0]), max_abp)       # update min-max of abp
-            min_abp = min(min(fl['data'][i][0]), min_abp)
+        output_str += '{},{},{}\n'.format(j,sbp,dbp)
 
 
-        fl = None                   # garbage collection
+    fp = open(os.path.join('processed_data','Part_1_{}.csv'.format(i)),'w')
+    fp.write(output_str)
+    fp.close()
+
+    f = h5py.File('./raw_data/Part_1.mat', 'r')
+
+    candidates = pickle.load(open('./candidates.p', 'rb'))
+    samples_in_episode = round(fs * t)
+    ky = 'Part_1'
+
+    for indix in tqdm(range(len(candidates)), desc='Reading from File 1/4'):
+
+        if(candidates[indix][0] != 1):
+            continue
+
+        record_no = int(candidates[indix][1])
+        episode_st = int(candidates[indix][2])
+
+        ppg = []
+        abp = []
+
+        for j in tqdm(range(episode_st, episode_st+samples_in_episode), desc='Reading Episode Id {}'.format(indix)):    
+
+            ppg.append(f[f[ky][record_no][0]][j][0])
+            abp.append(f[f[ky][record_no][0]][j][1])
+
+        pickle.dump(np.array(ppg), open(os.path.join('ppgs', '{}.p'.format(indix)), 'wb'))
+        pickle.dump(np.array(abp), open(os.path.join('abps', '{}.p'.format(indix)), 'wb'))
 
 
-        X_train = np.array(X_train)             # converting to numpy array
-        X_train -= min_ppg                      # normalizing
-        X_train /= (max_ppg-min_ppg)
+os.makedirs('data')
 
-        Y_train = np.array(Y_train)             # converting to numpy array
-        Y_train -= min_abp                      # normalizing
-        Y_train /= (max_abp-min_abp)
+files = next(os.walk('abps'))[2]
 
-                                                                # saving the training data split
-        pickle.dump({'X_train': X_train, 'Y_train': Y_train}, open(os.path.join('data', 'train{}.p'.format(fold_id)), 'wb'))
+np.random.shuffle(files)
+data = []
 
-        X_train = []                   # garbage collection
-        Y_train = []
+for fl in tqdm(files):
 
-        X_val = np.array(X_val)                 # converting to numpy array        
-        X_val -= min_ppg                        # normalizing
-        X_val /= (max_ppg-min_ppg)
+    abp = pickle.load(open(os.path.join('abps',fl),'rb'))
+    ppg = pickle.load(open(os.path.join('ppgs',fl),'rb'))
 
-        Y_val = np.array(Y_val)                 # converting to numpy array
-        Y_val -= min_abp                        # normalizing
-        Y_val /= (max_abp-min_abp)
-
-                                                                # saving the validation data split
-        pickle.dump({'X_val': X_val, 'Y_val': Y_val}, open(os.path.join('data', 'val{}.p'.format(fold_id)), 'wb'))
-
-        X_val = []                   # garbage collection
-        Y_val = []
-                                                                # saving the metadata
-        pickle.dump({'max_ppg': max_ppg,
-                     'min_ppg': min_ppg,
-                     'max_abp': max_abp,
-                     'min_abp': min_abp}, open(os.path.join('data', 'meta{}.p'.format(fold_id)), 'wb'))
-
-    fl = h5py.File(os.path.join('data', 'data.hdf5'), 'r')      # loading the episode data
-
-    X_test = []                 # intialize test data
-    Y_test = []
-
-    for i in tqdm(range(100000, len(fl['data']))):
-
-        X_test.append(np.array(fl['data'][i][1][:length]).reshape(length, 1))       # ppg signal
-        Y_test.append(np.array(fl['data'][i][0][:length]).reshape(length, 1))       # abp signal
-
-        max_ppg = max(max(fl['data'][i][1]), max_ppg)
-        min_ppg = min(min(fl['data'][i][1]), min_ppg)
-
-        max_abp = max(max(fl['data'][i][0]), max_abp)
-        min_abp = min(min(fl['data'][i][0]), min_abp)
-
-    X_test = np.array(X_test)           # converting to numpy array
-    X_test -= min_ppg                   # normalizing
-    X_test /= (max_ppg-min_ppg)
-    
-    Y_test = np.array(Y_test)           # converting to numpy array
-    Y_test -= min_abp                   # normalizing
-    Y_test /= (max_abp-min_abp)
-
-                                                                # saving the test data split
-    pickle.dump({'X_test': X_test,'Y_test': Y_test}, open(os.path.join('data', 'test.p'), 'wb'))
+    data.append([abp, ppg])
 
 
 
-def main():
-	process_data()
-	observe_processed_data()
-	downsample_data()
-	candidates = pickle.load(open('./candidates.p', 'rb'))
-	extract_episodes(candidates)
-	merge_episodes()
-    fold_data()         # splits the data for 10 fold cross validation
-
-if __name__ == '__main__':
-	main()
+f = h5py.File(os.path.join('data','data.hdf5'), 'w')

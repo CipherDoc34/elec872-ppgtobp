@@ -37,7 +37,7 @@ x = np.array(x)
 # # exit()
 
 
-dt = pickle.load(open(r"C:\git\elec872-ppgtobp\PPG2ABP\codes\data\meta9.p", 'rb'))			# loading metadata
+dt = pickle.load(open(r"../data\meta.p", 'rb'))
 max_ppg = dt['max_ppg']
 min_ppg = dt['min_ppg']
 max_abp = dt['max_abp']

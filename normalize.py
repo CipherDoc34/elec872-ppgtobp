@@ -31,4 +31,9 @@ data['Y_train'] = Y_train
 with open(output_path, 'wb') as f:
     pickle.dump(data, f)
 
+pickle.dump({'max_ppg': max_ppg,
+            'min_ppg': min_ppg,
+            'max_abp': max_abp,
+            'min_abp': min_abp}, open('meta.p', 'wb'))
+
 print(f"Data normalized and saved to {output_path}.")

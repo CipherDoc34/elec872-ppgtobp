@@ -1,5 +1,0 @@
-training
-Training MSE: 0.0198
-Testing MSE: 0.0237
-Testing R^2 Score: 0.1314
-230400 230400
