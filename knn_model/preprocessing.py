@@ -6,46 +6,6 @@ import matplotlib.pyplot as plt
 from scipy.signal import butter, filtfilt, find_peaks, periodogram
 import pandas as pd
 
-# dt = pickle.load(open(os.path.join('data','train0.p'),'rb'))
-
-# print(dt["X_train"][0].shape)
-# print(type(dt["X_train"]))
-
-# x = []
-# for data in dt["X_train"]:
-#     x.extend(data)
-# x = np.array(x)
-# # print(x.shape)
-
-# # exit()
-
-# pickle.dump(x, open("x.pkl", "wb+"))
-
-dt = pickle.load(open(r"C:\git\elec872-ppgtobp\PPG2ABP\codes\data\meta9.p", 'rb'))			# loading metadata
-max_ppg = dt['max_ppg']
-min_ppg = dt['min_ppg']
-max_abp = dt['max_abp']
-min_abp = dt['min_abp']
-
-x = pickle.load(open("test_set_raw.pkl",'rb'))
-
-y = x["y"][:2000] * max_abp + min_abp
-x = x["y"][:2000] * max_abp + min_abp
-
-
-print(x.shape)
-print(x)
-
-# Load data from a pickle file
-# with open('data.pkl', 'rb') as f:
-#     x, y = pickle.load(f)
-
-# Plot the raw data
-plt.figure(figsize=(12, 6))
-plt.plot(x, label='Raw Data')
-plt.title('Raw Data')
-plt.legend()
-plt.show()
 
 # Filtering functions
 def low_pass_filter(data, cutoff, fs, order=5):
@@ -62,6 +22,46 @@ def high_pass_filter(data, cutoff, fs, order=5):
 
 def moving_average(data, window_size):
     return np.convolve(data, np.ones(window_size) / window_size, mode='same')
+
+dt = pickle.load(open(os.path.join('data','train0.p'),'rb'))
+
+print(dt["X_train"][0].shape)
+print(type(dt["X_train"]))
+
+x = []
+for data in dt["X_train"]:
+    x.extend(data)
+x = np.array(x)
+# print(x.shape)
+
+# # exit()
+
+
+dt = pickle.load(open(r"C:\git\elec872-ppgtobp\PPG2ABP\codes\data\meta9.p", 'rb'))			# loading metadata
+max_ppg = dt['max_ppg']
+min_ppg = dt['min_ppg']
+max_abp = dt['max_abp']
+min_abp = dt['min_abp']
+
+x = pickle.load(open("test_set_raw.pkl",'rb'))
+
+y = x["y"][:2000] * max_abp + min_abp
+x = x["x"][:2000] * max_abp + min_abp
+
+
+print(x.shape)
+print(x)
+
+# Load data from a pickle file
+# with open('data.pkl', 'rb') as f:
+#     x, y = pickle.load(f)
+
+# Plot the raw data
+plt.figure(figsize=(12, 6))
+plt.plot(x, label='Raw Data')
+plt.title('Raw Data')
+plt.legend()
+plt.show()
 
 # Apply filters
 fs = 100  # Sampling frequency (adjust as needed)
