@@ -100,6 +100,9 @@ one_sample = x[:1024, :]
 gt_sample = y[:1024]
 y_pred = knn.predict(one_sample)
 
+output = dict(ppg=one_sample, gt=gt_sample, output=y_pred, model=knn)
+pickle.dump(output, open("knn_output.pkl", "wb+"))
+
 plt.figure(figsize=(12, 12))
 
 fig, ax = plt.subplots(3, 1)

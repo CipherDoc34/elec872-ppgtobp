@@ -21,9 +21,18 @@ import pandas as pd
 
 # pickle.dump(x, open("x.pkl", "wb+"))
 
-x = pickle.load(open("x.pkl",'rb'))
+dt = pickle.load(open(r"C:\git\elec872-ppgtobp\PPG2ABP\codes\data\meta9.p", 'rb'))			# loading metadata
+max_ppg = dt['max_ppg']
+min_ppg = dt['min_ppg']
+max_abp = dt['max_abp']
+min_abp = dt['min_abp']
 
-x = x[:1024]
+x = pickle.load(open("test_set_raw.pkl",'rb'))
+
+y = x["y"][:2000] * max_abp + min_abp
+x = x["y"][:2000] * max_abp + min_abp
+
+
 print(x.shape)
 print(x)
 

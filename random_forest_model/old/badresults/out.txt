@@ -1,0 +1,18 @@
+training....
+[Parallel(n_jobs=1)]: Done  49 tasks      | elapsed: 22.9min
+[Parallel(n_jobs=1)]: Done  49 tasks      | elapsed:   12.1s
+[Parallel(n_jobs=1)]: Done  49 tasks      | elapsed:    3.0s
+Training MSE: 0.0222
+Testing MSE: 0.0223
+Testing R^2 Score: 0.1784
+[Parallel(n_jobs=1)]: Done  49 tasks      | elapsed:    0.0s
+[Parallel(n_jobs=1)]: Done  49 tasks      | elapsed:    0.0s
+
+gt
+gt: sys 0.49537781608765696, dis 0.17198984381722182
+output
+output: sys 0.40693372097213387, dis 0.19321870599820093
+1024 1024
+1024 1024
+sys mae: 0.014417708157094996
+dis mae: 0.00781159649414567

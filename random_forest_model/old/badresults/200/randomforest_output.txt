@@ -1,0 +1,14 @@
+training....
+Training MSE: 0.0212
+Testing MSE: 0.0218
+Testing R^2 Score: 0.1986
+(e872) C:\git\elec872-ppgtobp\random_forest_model>python random_f_model.py > randomforest_output.txt
+C:\git\elec872-ppgtobp\random_forest_model\random_f_model.py:36: RuntimeWarning: invalid value encountered in scalar divide
+  skewness = np.mean((median - mean) ** 3) / (std ** 3)
+C:\git\elec872-ppgtobp\random_forest_model\random_f_model.py:37: RuntimeWarning: invalid value encountered in scalar divide
+  kurtosis = np.mean((median - mean) ** 4) / (std ** 4)
+[Parallel(n_jobs=1)]: Done  49 tasks      | elapsed:  1.6min
+[Parallel(n_jobs=1)]: Done  49 tasks      | elapsed:    1.2s
+[Parallel(n_jobs=1)]: Done  49 tasks      | elapsed:    0.2s
+[Parallel(n_jobs=1)]: Done  49 tasks      | elapsed:    0.0s
+[Parallel(n_jobs=1)]: Done  49 tasks      | elapsed:    0.0s

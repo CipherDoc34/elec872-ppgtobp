@@ -1,0 +1,24 @@
+
+optimization finished, #iter = 1000000
+obj = 2656292.812834, rho = 0.246407
+nSV = 182477, nBSV = 182385
+
+
+(e872) C:\git\elec872-ppgtobp>cd svm_model
+
+(e872) C:\git\elec872-ppgtobp\svm_model>python svm_model.py
+.........................................................................................................................................................................................................................................................................................................................................
+Warning: using -h 0 may be faster
+*...................................................................
+Warning: using -h 0 may be faster
+*........................................................................................................................................
+Warning: using -h 0 may be faster
+*...............................................................................................................................WARN: libsvm Solver reached max_iter
+optimization finished, #iter = 1000000
+obj = 2656292.812834, rho = 0.246407
+nSV = 182477, nBSV = 182385
+C:\Users\Keshav\AppData\Roaming\Python\Python39\site-packages\sklearn\svm\_base.py:297: ConvergenceWarning: Solver terminated early (max_iter=1000000).  Consider pre-processing your data with StandardScaler or MinMaxScaler.
+  warnings.warn(
+[LibSVM]Training MSE: 0.0252
+Testing MSE: 0.0252
+Testing R^2 Score: 0.0735
